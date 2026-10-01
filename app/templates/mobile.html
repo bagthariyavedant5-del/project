@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>NETRADEEP &mdash; Mobile Screening</title>
+  <meta name="theme-color" content="#0891b2"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cyan: #06b6d4; --cyan-d: #0891b2; --cyan-dd: #0e7490;
+      --bg: #f0f8ff; --surface: #fff; --border: #d0e8f5;
+      --text: #0f172a; --muted: #475569; --subtle: #94a3b8;
+      --r0:#10b981; --r1:#3b82f6; --r2:#f59e0b; --r3:#ef4444; --r4:#7c3aed;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    html { height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100%;
+      overflow-x: hidden;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(255,255,255,.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .75rem 1rem;
+      box-shadow: 0 2px 8px rgba(6,182,212,.08);
+    }
+    .brand { display: flex; align-items: center; gap: 8px; }
+    .brand-logo {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--cyan-d), var(--cyan));
+      border-radius: 9px; display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .brand-logo svg { width: 18px; height: 18px; fill: #fff; }
+    .brand-name { font-size: 1.05rem; font-weight: 800; color: var(--cyan-dd); letter-spacing: -.02em; }
+    .brand-name span { color: var(--cyan); }
+    .logout-btn {
+      font-size: .75rem; font-weight: 600; color: var(--muted);
+      border: 1px solid var(--border); border-radius: 99px;
+      padding: 5px 14px; background: transparent; cursor: pointer;
+      text-decoration: none; white-space: nowrap;
+    }
+
+    /* ── SCROLL CONTENT ── */
+    .content {
+      padding: 1rem 1rem calc(80px + var(--safe-bottom));
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── VIEWS ── */
+    .view { display: none; animation: fadein .25s ease; }
+    .view.active { display: block; }
+    @keyframes fadein { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── SECTION HEADER ── */
+    .section-title { font-size: 1.25rem; font-weight: 800; color: var(--text); letter-spacing: -.03em; margin-bottom: 3px; }
+    .section-sub { font-size: .82rem; color: var(--muted); margin-bottom: 1.25rem; }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 16px; overflow: hidden; margin-bottom: 1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,.05);
+    }
+    .card-head {
+      background: #e6f7fb; padding: .75rem 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-head-title {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .08em; color: var(--cyan-dd);
+    }
+    .card-body { padding: 1rem; }
+
+    /* ── UPLOAD ZONE ── */
+    .upload-zone {
+      border: 2px dashed var(--cyan); border-radius: 14px;
+      background: #e6f7fb; padding: 2rem 1rem;
+      text-align: center; cursor: pointer; transition: .18s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .upload-zone:active { background: #cceff8; transform: scale(.99); }
+    .upload-icon { width: 44px; height: 44px; stroke: var(--cyan-d); margin: 0 auto .75rem; display: block; }
+    .upload-title { font-size: .95rem; font-weight: 700; color: var(--cyan-dd); }
+    .upload-sub { font-size: .78rem; color: var(--muted); margin-top: 4px; }
+    #m-file { display: none; }
+
+    .preview-img {
+      width: 100%; max-height: 200px; object-fit: contain;
+      border-radius: 10px; background: #0f172a; display: none; margin-top: .75rem;
+    }
+
+    /* ── FORM — ALL SINGLE COLUMN, NO OVERFLOW ── */
+    .form-field { display: flex; flex-direction: column; gap: 5px; margin-bottom: .75rem; }
+    .form-field:last-child { margin-bottom: 0; }
+    .form-label {
+      font-size: .7rem; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .05em;
+    }
+    .form-input, .form-select {
+      width: 100%; padding: 12px 14px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: .95rem; font-family: inherit;
+      background: var(--surface); color: var(--text);
+      outline: none; transition: .18s;
+      -webkit-appearance: none; appearance: none;
+      min-height: 46px;
+    }
+    .form-input:focus, .form-select:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(6,182,212,.12);
+    }
+    /* Two-col grid only for Age+Gender and Eye+HbA1c — with overflow protection */
+    .form-row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .625rem;
+      margin-bottom: .75rem;
+    }
+    .form-row-2 .form-field { margin-bottom: 0; }
+    .form-row-2 .form-input,
+    .form-row-2 .form-select {
+      width: 100%;
+      min-width: 0;  /* prevent overflow */
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ── BUTTON ── */
+    .btn-primary {
+      width: 100%; padding: 15px;
+      border-radius: 14px; border: none;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan-dd));
+      color: #fff; font-size: 1rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(6,182,212,.4);
+      transition: .18s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary:active { transform: scale(.98); box-shadow: 0 2px 8px rgba(6,182,212,.3); }
+    .btn-primary:disabled { opacity: .5; pointer-events: none; }
+    .btn-primary svg { width: 18px; height: 18px; flex-shrink: 0; }
+
+    /* ── LOADER ── */
+    .loader { display: none; text-align: center; padding: 2.5rem 0; }
+    .loader.visible { display: block; }
+    .spinner {
+      width: 44px; height: 44px; border: 4px solid var(--border);
+      border-top-color: var(--cyan); border-radius: 50%;
+      animation: spin .9s linear infinite; margin: 0 auto .875rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULTS ── */
+    .result-wrap { display: none; margin-top: .75rem; }
+    .result-wrap.visible { display: block; }
+
+    /* DX card */
+    .dx-card {
+      border-radius: 16px; padding: 1.25rem;
+      margin-bottom: .875rem; border: 2px solid;
+    }
+    .dx-stage { font-size: 1.05rem; font-weight: 800; margin-bottom: 4px; }
+    .dx-risk { font-size: .82rem; font-weight: 600; opacity: .85; line-height: 1.4; }
+
+    /* Confidence bar */
+    .conf-wrap {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1rem; margin-bottom: .875rem;
+    }
+    .conf-top {
+      display: flex; justify-content: space-between;
+      font-size: .78rem; color: var(--muted); margin-bottom: .5rem;
+    }
+    .conf-val { font-weight: 700; color: var(--text); }
+    .conf-track { height: 10px; background: var(--border); border-radius: 5px; overflow: hidden; }
+    .conf-fill {
+      height: 100%; background: linear-gradient(90deg, var(--cyan), var(--cyan-dd));
+      border-radius: 5px; transition: width .8s cubic-bezier(.4,0,.2,1);
+    }
+
+    /* Image tabs */
+    .img-tabs { display: flex; gap: 6px; margin-bottom: .75rem; }
+    .img-tab {
+      flex: 1; padding: 8px 4px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: var(--bg);
+      font-size: .75rem; font-weight: 600; color: var(--muted);
+      text-align: center; cursor: pointer; transition: .18s;
+    }
+    .img-tab.active { border-color: var(--cyan); background: #e6f7fb; color: var(--cyan-dd); }
+    .img-display {
+      width: 100%; border-radius: 12px; object-fit: cover;
+      background: #0f172a; display: block; max-height: 200px;
+    }
+
+    /* Info rows */
+    .info-row {
+      background: var(--bg); border: 1px solid var(--border);
+      border-radius: 12px; padding: .875rem 1rem; margin-bottom: .625rem;
+    }
+    .info-key {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--subtle); margin-bottom: 4px;
+    }
+    .info-val { font-size: .88rem; font-weight: 600; color: var(--text); line-height: 1.4; }
+
+    /* Probability rows */
+    .prob-item { display: flex; align-items: center; gap: 8px; margin-bottom: .5rem; }
+    .prob-label {
+      font-size: .72rem; color: var(--muted); width: 110px;
+      flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .prob-track { flex: 1; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
+    .prob-fill { height: 100%; border-radius: 3px; transition: width .8s cubic-bezier(.4,0,.2,1); }
+    .prob-pct { font-size: .72rem; font-weight: 700; width: 38px; text-align: right; }
+
+    /* Save button */
+    .btn-save {
+      width: 100%; padding: 14px; border-radius: 12px; border: none;
+      background: #0e7490; color: #fff;
+      font-size: .95rem; font-weight: 700; font-family: inherit;
+      cursor: pointer; margin-top: .5rem;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-save:active { opacity: .85; }
+    .btn-save svg { width: 16px; height: 16px; }
+
+    /* ── BOTTOM NAV ── */
+    .tab-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      background: rgba(255,255,255,.97);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding-bottom: var(--safe-bottom);
+    }
+    .tab-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: .65rem .5rem; cursor: pointer;
+      border: none; background: transparent;
+      -webkit-tap-highlight-color: transparent;
+      transition: .15s;
+    }
+    .tab-item svg { width: 22px; height: 22px; stroke: var(--subtle); transition: .15s; }
+    .tab-item span { font-size: .68rem; font-weight: 600; color: var(--subtle); margin-top: 3px; transition: .15s; }
+    .tab-item.active svg { stroke: var(--cyan-d); }
+    .tab-item.active span { color: var(--cyan-d); }
+
+    /* ── SAVE MODAL (bottom sheet) ── */
+    .modal-bg {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(15,23,42,.55); backdrop-filter: blur(4px);
+      display: none; align-items: flex-end; justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal-sheet {
+      background: var(--surface); border-radius: 24px 24px 0 0;
+      padding: 1.5rem 1.25rem calc(1.5rem + var(--safe-bottom));
+      width: 100%; max-width: 480px;
+      animation: slideup .28s ease;
+    }
+    @keyframes slideup { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal-handle {
+      width: 40px; height: 4px; background: var(--border);
+      border-radius: 2px; margin: 0 auto 1.25rem;
+    }
+    .modal-title { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; }
+    .modal-actions { display: flex; gap: .625rem; margin-top: 1.25rem; }
+    .btn-cancel {
+      flex: 1; padding: 13px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: transparent;
+      color: var(--muted); font-size: .875rem; font-weight: 600;
+      font-family: inherit; cursor: pointer;
+    }
+    .btn-confirm {
+      flex: 2; padding: 13px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan-dd));
+      color: #fff; font-size: .875rem; font-weight: 700;
+      font-family: inherit; cursor: pointer;
+    }
+
+    /* ── ABOUT PAGE ── */
+    .about-chip {
+      display: inline-block; padding: 4px 12px; border-radius: 99px;
+      font-size: .72rem; font-weight: 600;
+      background: #e6f7fb; color: var(--cyan-dd);
+      border: 1px solid var(--border); margin: .2rem;
+    }
+    .team-card {
+      display: flex; align-items: center; gap: .875rem;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1rem; margin-bottom: .75rem;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+    }
+    .avatar {
+      width: 50px; height: 50px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan-dd));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; font-weight: 800; color: #fff; flex-shrink: 0;
+    }
+    .team-name { font-size: .95rem; font-weight: 700; color: var(--text); }
+    .team-role { font-size: .75rem; color: var(--muted); margin-top: 2px; }
+    .team-tag {
+      display: inline-block; margin-top: 5px; padding: 2px 9px;
+      border-radius: 99px; font-size: .65rem; font-weight: 600;
+      background: #e6f7fb; color: var(--cyan-dd); border: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+    </div>
+    <div class="brand-name">NETRA<span>DEEP</span></div>
+  </div>
+  <a class="logout-btn" href="/logout">Sign Out</a>
+</header>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- ─── SCAN VIEW ─── -->
+  <div class="view active" id="mv-scan">
+    <div class="section-title">DR Screening</div>
+    <div class="section-sub">Upload a fundus photo for instant AI diagnosis</div>
+
+    <!-- Upload card -->
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Fundus Image</div></div>
+      <div class="card-body">
+        <div class="upload-zone" id="m-upload-zone"
+             onclick="document.getElementById('m-file').click()">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+          <div class="upload-title">Tap to upload fundus image</div>
+          <div class="upload-sub">JPEG or PNG &mdash; color fundus photography</div>
+        </div>
+        <input type="file" id="m-file" accept="image/*" onchange="mHandleFile(event)"/>
+        <img id="m-preview" class="preview-img" alt="Preview"/>
+      </div>
+    </div>
+
+    <!-- Patient details card - ALL SINGLE COLUMN for reliability -->
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Patient Details</div></div>
+      <div class="card-body">
+        <div class="form-field">
+          <label class="form-label">Patient Name</label>
+          <input class="form-input" id="m-name" type="text" placeholder="Full name"/>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-field">
+            <label class="form-label">Age</label>
+            <input class="form-input" id="m-age" type="number" placeholder="Years" inputmode="numeric"/>
+          </div>
+          <div class="form-field">
+            <label class="form-label">Gender</label>
+            <select class="form-select" id="m-gender">
+              <option>Male</option><option>Female</option><option>Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-field">
+            <label class="form-label">Eye</label>
+            <select class="form-select" id="m-eye">
+              <option>OD (Right)</option><option>OS (Left)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label class="form-label">HbA1c %</label>
+            <input class="form-input" id="m-hba1c" type="number" placeholder="7.2" step="0.1" inputmode="decimal"/>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analyze button -->
+    <button class="btn-primary" id="m-analyze-btn" onclick="mRunAnalysis()" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+      Run AI Analysis
+    </button>
+
+    <!-- Loader -->
+    <div class="loader" id="m-loader">
+      <div class="spinner"></div>
+      <p style="font-size:.85rem;color:var(--muted);">Analyzing fundus image&hellip;</p>
+    </div>
+
+    <!-- Results section -->
+    <div class="result-wrap" id="m-results">
+
+      <!-- Diagnosis badge -->
+      <div id="m-dx-card" class="dx-card" style="margin-top:.75rem;">
+        <div id="m-dx-stage" class="dx-stage"></div>
+        <div id="m-dx-risk" class="dx-risk"></div>
+      </div>
+
+      <!-- Confidence bar -->
+      <div class="conf-wrap">
+        <div class="conf-top">
+          <span>Model Confidence</span>
+          <span class="conf-val" id="m-conf-pct"></span>
+        </div>
+        <div class="conf-track"><div class="conf-fill" id="m-conf-fill" style="width:0%"></div></div>
+      </div>
+
+      <!-- Image switcher -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Fundus Views</div></div>
+        <div class="card-body">
+          <div class="img-tabs">
+            <div class="img-tab active" onclick="mShowImg('original',this)">Original</div>
+            <div class="img-tab" onclick="mShowImg('enhanced',this)">CLAHE</div>
+            <div class="img-tab" onclick="mShowImg('cam',this)">Grad-CAM</div>
+          </div>
+          <img id="m-img-display" class="img-display" alt="Fundus view"/>
+        </div>
+      </div>
+
+      <!-- Clinical info -->
+      <div id="m-info-rows"></div>
+
+      <!-- Probability bars -->
+      <div class="card">
+        <div class="card-head"><div class="card-head-title">Class Probabilities</div></div>
+        <div class="card-body" id="m-probs"></div>
+      </div>
+
+      <!-- Save button -->
+      <button class="btn-save" onclick="openMSaveModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+        </svg>
+        Save Result
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── ABOUT VIEW ─── -->
+  <div class="view" id="mv-about">
+    <div class="section-title">About NETRADEEP</div>
+    <div class="section-sub">AI diagnostic system for diabetic retinopathy</div>
+
+    <div class="card">
+      <div class="card-head"><div class="card-head-title">Platform</div></div>
+      <div class="card-body">
+        <p style="font-size:.875rem;color:var(--muted);line-height:1.7;margin-bottom:1rem;">
+          NETRADEEP is an AI-powered clinical diagnostic tool for automated diabetic
+          retinopathy grading from fundus photographs using MobileNetV2 with Grad-CAM explainability
+          and CLAHE image enhancement.
+        </p>
+        <div>
+          <span class="about-chip">TensorFlow 2.x</span>
+          <span class="about-chip">MobileNetV2</span>
+          <span class="about-chip">Flask</span>
+          <span class="about-chip">OpenCV</span>
+          <span class="about-chip">Grad-CAM</span>
+          <span class="about-chip">CLAHE</span>
+          <span class="about-chip">SQLite EHR</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="font-size:.9rem;font-weight:700;color:var(--text);margin-bottom:.75rem;margin-top:.25rem;">Development Team</div>
+
+    <div class="team-card">
+      <div class="avatar">VB</div>
+      <div>
+        <div class="team-name">Vedant Bagthariya</div>
+        <div class="team-role">Team Lead &mdash; AI/ML Architecture</div>
+        <span class="team-tag">Project Lead</span>
+      </div>
+    </div>
+    <div class="team-card">
+      <div class="avatar">RP</div>
+      <div>
+        <div class="team-name">Rajdeepsinh Parmar</div>
+        <div class="team-role">Backend Engineer</div>
+        <span class="team-tag">Backend</span>
+      </div>
+    </div>
+    <div class="team-card">
+      <div class="avatar">AS</div>
+      <div>
+        <div class="team-name">Avanish Shiyal</div>
+        <div class="team-role">Frontend Engineer</div>
+        <span class="team-tag">Frontend</span>
+      </div>
+    </div>
+
+    <div style="background:#fee2e2;border:1px solid #fca5a5;border-radius:12px;padding:1rem;margin-top:.5rem;">
+      <div style="font-size:.72rem;font-weight:700;color:#991b1b;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;">Clinical Disclaimer</div>
+      <p style="font-size:.8rem;color:#7f1d1d;line-height:1.6;">
+        For clinical decision support only. All results must be validated by a qualified ophthalmologist.
+      </p>
+    </div>
+  </div>
+
+</div><!-- end .content -->
+
+<!-- BOTTOM NAV -->
+<nav class="tab-bar">
+  <button class="tab-item active" id="mtab-scan" onclick="mShowView('scan')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+    </svg>
+    <span>Scan</span>
+  </button>
+  <button class="tab-item" id="mtab-about" onclick="mShowView('about')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="12" y1="8" x2="12" y2="12"/>
+      <line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span>About</span>
+  </button>
+</nav>
+
+<!-- SAVE BOTTOM SHEET -->
+<div class="modal-bg" id="m-save-modal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Save Screening Result</div>
+    <div class="form-field">
+      <label class="form-label">Patient ID</label>
+      <input class="form-input" id="ms-pid" type="text" placeholder="e.g. PT-2024001"/>
+    </div>
+    <div class="form-field" style="margin-top:.625rem;">
+      <label class="form-label">Clinical Notes</label>
+      <input class="form-input" id="ms-notes" type="text" placeholder="Physician observations..."/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeMSaveModal()">Cancel</button>
+      <button class="btn-confirm" onclick="mSaveRecord()">Confirm Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const RC  = ['#10b981','#3b82f6','#f59e0b','#ef4444','#7c3aed'];
+  let mImageB64 = null, mLastResult = null, mImgData = {};
+
+  function mShowView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+    document.getElementById('mv-' + name).classList.add('active');
+    document.getElementById('mtab-' + name).classList.add('active');
+    window.scrollTo(0, 0);
+  }
+
+  function mHandleFile(e) {
+    const f = e.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      mImageB64 = ev.target.result;
+      const p = document.getElementById('m-preview');
+      p.src = mImageB64; p.style.display = 'block';
+      document.getElementById('m-upload-zone').style.display = 'none';
+      document.getElementById('m-analyze-btn').disabled = false;
+    };
+    reader.readAsDataURL(f);
+  }
+
+  async function mRunAnalysis() {
+    if (!mImageB64) return;
+    document.getElementById('m-analyze-btn').style.display = 'none';
+    document.getElementById('m-results').classList.remove('visible');
+    document.getElementById('m-loader').classList.add('visible');
+    const fd = new FormData(); fd.append('image_b64', mImageB64);
+    try {
+      const d = await (await fetch('/api/predict', { method: 'POST', body: fd })).json();
+      if (!d.success) throw new Error(d.error);
+      mLastResult = d;
+      mImgData = { original: d.original_b64, enhanced: d.enhanced_b64, cam: d.cam_b64 };
+      mRenderResults(d);
+    } catch(e) {
+      document.getElementById('m-loader').classList.remove('visible');
+      document.getElementById('m-analyze-btn').style.display = 'flex';
+      alert('Analysis failed: ' + e.message);
+    }
+  }
+
+  function mRenderResults(d) {
+    document.getElementById('m-loader').classList.remove('visible');
+    document.getElementById('m-results').classList.add('visible');
+
+    const color = RC[d.stage_idx];
+    const dxCard = document.getElementById('m-dx-card');
+    dxCard.style.background  = color + '18';
+    dxCard.style.borderColor = color + '66';
+    const st = document.getElementById('m-dx-stage');
+    st.textContent = d.stage_name; st.style.color = color;
+    const rk = document.getElementById('m-dx-risk');
+    rk.textContent = d.risk_category + ' — ' + d.urgency; rk.style.color = color;
+
+    document.getElementById('m-conf-pct').textContent = d.confidence.toFixed(1) + '%';
+    setTimeout(() => document.getElementById('m-conf-fill').style.width = d.confidence + '%', 80);
+
+    document.getElementById('m-img-display').src = 'data:image/jpeg;base64,' + d.original_b64;
+
+    document.getElementById('m-info-rows').innerHTML =
+      '<div class="info-row"><div class="info-key">Follow-up Action</div><div class="info-val">' + d.urgency + '</div></div>' +
+      '<div class="info-row"><div class="info-key">Treatment Protocol</div><div class="info-val">' + d.treatment + '</div></div>';
+
+    const pc = document.getElementById('m-probs'); pc.innerHTML = '';
+    d.classes.forEach((cls, i) => {
+      const pct = d.probabilities[i].toFixed(1);
+      pc.innerHTML +=
+        '<div class="prob-item">' +
+        '<div class="prob-label">' + cls.split(':')[0].trim() + '</div>' +
+        '<div class="prob-track"><div class="prob-fill" style="width:0%;background:' + RC[i] + '" data-w="' + pct + '"></div></div>' +
+        '<div class="prob-pct" style="color:' + RC[i] + '">' + pct + '%</div>' +
+        '</div>';
+    });
+    setTimeout(() => document.querySelectorAll('#m-probs .prob-fill[data-w]').forEach(el => el.style.width = el.dataset.w + '%'), 100);
+
+    document.getElementById('m-results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function mShowImg(type, tabEl) {
+    document.querySelectorAll('.img-tab').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+    if (mImgData[type]) document.getElementById('m-img-display').src = 'data:image/jpeg;base64,' + mImgData[type];
+  }
+
+  function openMSaveModal()  { document.getElementById('m-save-modal').classList.add('open'); }
+  function closeMSaveModal() { document.getElementById('m-save-modal').classList.remove('open'); }
+
+  async function mSaveRecord() {
+    if (!mLastResult) return;
+    const payload = {
+      patient_id:   document.getElementById('ms-pid').value   || 'MOB-AUTO',
+      patient_name: document.getElementById('m-name').value   || 'Anonymous',
+      age:          parseInt(document.getElementById('m-age').value) || 0,
+      gender:       document.getElementById('m-gender').value,
+      eye_examined: document.getElementById('m-eye').value,
+      hba1c:        parseFloat(document.getElementById('m-hba1c').value) || 0,
+      stage_idx: mLastResult.stage_idx, stage_name: mLastResult.stage_name,
+      confidence: mLastResult.confidence, urgency_level: mLastResult.urgency,
+      doctor_notes: document.getElementById('ms-notes').value || 'Mobile screening result.'
+    };
+    try {
+      const d = await (await fetch('/api/cases', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })).json();
+      if (d.success) { closeMSaveModal(); alert('Saved! Case ID: ' + d.case_id); }
+    } catch(e) { alert('Save failed: ' + e.message); }
+  }
+</script>
+</body>
+</html>

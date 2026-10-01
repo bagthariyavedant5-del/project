@@ -1,0 +1,40 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Large binary files
+*.whl
+*.h5
+*.pb
+*.onnx
+
+# Database files (contains patient data)
+*.db
+*.sqlite
+
+# Tunnel / logs
+tunnel.log
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Dataset (too large for GitHub)
+dataset/
+
+# PDFs
+*.pdf

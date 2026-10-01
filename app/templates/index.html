@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NETRADEEP - AI Diabetic Retinopathy Diagnostic Platform</title>
+  <meta name="description" content="NETRADEEP: Clinical-grade AI-powered diabetic retinopathy screening using deep learning, Grad-CAM explainability, and CLAHE fundus image enhancement." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --c-bg: #f0f8ff; --c-surface: #ffffff; --c-border: #d0e8f5;
+      --c-cyan-50: #e6f7fb; --c-cyan-100: #cceff8; --c-cyan-400: #22d3ee;
+      --c-cyan-500: #06b6d4; --c-cyan-600: #0891b2; --c-cyan-700: #0e7490;
+      --c-cyan-800: #155e75; --c-text: #0f172a; --c-muted: #475569; --c-subtle: #94a3b8;
+      --r0: #10b981; --r1: #3b82f6; --r2: #f59e0b; --r3: #ef4444; --r4: #7c3aed;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.08); --shadow-md: 0 4px 16px rgba(6,182,212,.12);
+      --shadow-lg: 0 12px 40px rgba(6,182,212,.18); --tr: 0.22s cubic-bezier(0.4,0,0.2,1);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--c-bg); color: var(--c-text); min-height: 100vh; overflow-x: hidden; }
+    .topnav {
+      position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(18px); border-bottom: 1px solid var(--c-border);
+      display: flex; align-items: center; justify-content: space-between; padding: 0 2rem; height: 64px;
+      box-shadow: 0 1px 0 var(--c-border), 0 4px 12px rgba(6,182,212,.06);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo {
+      width: 36px; height: 36px; background: linear-gradient(135deg, var(--c-cyan-600), var(--c-cyan-400));
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    }
+    .nav-logo svg { width: 20px; height: 20px; fill: #fff; }
+    .nav-brand-text { font-size: 1.2rem; font-weight: 800; color: var(--c-cyan-700); letter-spacing: -0.02em; }
+    .nav-brand-text span { color: var(--c-cyan-400); }
+    .nav-tabs { display: flex; align-items: center; gap: 2px; }
+    .nav-tab {
+      padding: 7px 18px; border-radius: 6px; font-size: 0.875rem; font-weight: 500;
+      color: var(--c-muted); cursor: pointer; transition: var(--tr); border: none; background: none;
+    }
+    .nav-tab:hover { background: var(--c-cyan-50); color: var(--c-cyan-700); }
+    .nav-tab.active { background: var(--c-cyan-500); color: #fff; }
+    .status-pill {
+      display: flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0;
+      padding: 4px 12px; border-radius: 99px; font-size: 0.78rem; font-weight: 600; color: #15803d;
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; animation: pulse 2s ease-in-out infinite; }
+    .app-shell { display: flex; min-height: calc(100vh - 64px); }
+    .sidebar {
+      width: 258px; flex-shrink: 0; background: var(--c-surface); border-right: 1px solid var(--c-border);
+      padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 2px;
+    }
+    .sidebar-label { font-size: .7rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--c-subtle); padding: .75rem .5rem .25rem; }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px;
+      font-size: .875rem; font-weight: 500; color: var(--c-muted); cursor: pointer; transition: var(--tr);
+      border: none; background: none; width: 100%; text-align: left;
+    }
+    .sidebar-item svg { width: 17px; height: 17px; flex-shrink: 0; }
+    .sidebar-item:hover { background: var(--c-cyan-50); color: var(--c-cyan-700); }
+    .sidebar-item.active { background: var(--c-cyan-50); color: var(--c-cyan-700); font-weight: 600; }
+    .sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--c-border); }
+    .team-pill { font-size: .75rem; color: var(--c-subtle); padding: 8px 12px; line-height: 1.6; }
+    .team-pill strong { color: var(--c-muted); display: block; margin-bottom: 2px; }
+    .main-content { flex: 1; overflow: hidden; }
+    .view { display: none; padding: 2rem; animation: fadeIn .3s ease; }
+    .view.active { display: block; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+    .page-header { margin-bottom: 2rem; }
+    .page-title { font-size: 1.6rem; font-weight: 800; color: var(--c-text); letter-spacing: -0.03em; }
+    .page-subtitle { font-size: .9rem; color: var(--c-muted); margin-top: 4px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+    .stat-card {
+      background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px;
+      padding: 1.25rem 1.5rem; box-shadow: var(--shadow-sm); transition: var(--tr); position: relative; overflow: hidden;
+    }
+    .stat-card::after { content:''; position: absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(--c-cyan-400), var(--c-cyan-600)); border-radius: 12px 12px 0 0; }
+    .stat-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .stat-label { font-size:.78rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--c-subtle); }
+    .stat-value { font-size: 2.2rem; font-weight: 800; color: var(--c-cyan-700); line-height:1.1; margin: 6px 0 4px; }
+    .stat-sub { font-size:.78rem; color:var(--c-muted); }
+    .diag-grid { display: grid; grid-template-columns: 400px 1fr; gap: 1.5rem; }
+    .card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: 12px; box-shadow: var(--shadow-sm); overflow: hidden; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.5rem; border-bottom: 1px solid var(--c-border); background: var(--c-cyan-50); }
+    .card-title { font-size:.875rem; font-weight:700; color:var(--c-cyan-800); text-transform:uppercase; letter-spacing:.06em; }
+    .card-body { padding: 1.5rem; }
+    .upload-zone { border: 2px dashed var(--c-cyan-400); border-radius: 12px; background: var(--c-cyan-50); padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: var(--tr); }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--c-cyan-600); background: var(--c-cyan-100); }
+    .upload-icon { width: 48px; height: 48px; stroke: var(--c-cyan-500); margin: 0 auto 1rem; display: block; }
+    .upload-title { font-size:.95rem; font-weight:600; color:var(--c-cyan-700); }
+    .upload-sub { font-size:.8rem; color:var(--c-muted); margin-top:4px; }
+    #file-input { display: none; }
+    .preview-img { width:100%; border-radius:8px; object-fit:contain; max-height:220px; background:#000; display:none; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: 1rem; }
+    .form-field { display:flex; flex-direction:column; gap:4px; }
+    .form-field.full { grid-column: 1/-1; }
+    .form-label { font-size:.75rem; font-weight:600; color:var(--c-muted); text-transform:uppercase; letter-spacing:.05em; }
+    .form-input, .form-select { padding: 8px 12px; border: 1px solid var(--c-border); border-radius: 6px; font-size:.875rem; font-family:inherit; background:var(--c-surface); color:var(--c-text); transition:var(--tr); outline:none; }
+    .form-input:focus, .form-select:focus { border-color:var(--c-cyan-400); box-shadow:0 0 0 3px rgba(6,182,212,.15); }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; border-radius:6px; font-size:.875rem; font-weight:600; font-family:inherit; cursor:pointer; border:none; transition:var(--tr); }
+    .btn svg { width:16px; height:16px; flex-shrink:0; }
+    .btn-primary { background:linear-gradient(135deg,var(--c-cyan-500),var(--c-cyan-700)); color:#fff; box-shadow:0 2px 8px rgba(6,182,212,.4); }
+    .btn-primary:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(6,182,212,.5); }
+    .btn-primary:disabled { opacity:.55; pointer-events:none; }
+    .btn-outline { background:transparent; color:var(--c-cyan-600); border:1.5px solid var(--c-cyan-400); }
+    .btn-outline:hover { background:var(--c-cyan-50); }
+    .btn-row { display:flex; gap:8px; flex-wrap:wrap; margin-top:1rem; }
+    .result-section { display:none; }
+    .result-section.visible { display:block; }
+    .img-trio { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:1rem; }
+    .img-trio figure { border-radius:8px; overflow:hidden; background:#0f172a; position:relative; }
+    .img-trio img { width:100%; object-fit:cover; display:block; }
+    .img-trio figcaption { position:absolute; bottom:0; left:0; right:0; padding:4px 8px; font-size:.68rem; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:#fff; background:rgba(0,0,0,.55); backdrop-filter:blur(4px); }
+    .dx-badge { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:99px; font-size:.85rem; font-weight:700; margin-bottom:1rem; }
+    .dx-badge .dot { width:10px; height:10px; border-radius:50%; }
+    .conf-bar-wrap { margin:.5rem 0 1rem; }
+    .conf-bar-label { display:flex; justify-content:space-between; font-size:.78rem; color:var(--c-muted); margin-bottom:4px; }
+    .conf-bar-track { height:8px; background:var(--c-border); border-radius:4px; overflow:hidden; }
+    .conf-bar-fill { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--c-cyan-400),var(--c-cyan-600)); transition:width .8s cubic-bezier(.4,0,.2,1); }
+    .prob-bars { display:flex; flex-direction:column; gap:6px; margin-bottom:1rem; }
+    .prob-row { display:flex; align-items:center; gap:8px; }
+    .prob-label { font-size:.72rem; font-weight:500; color:var(--c-muted); width:160px; flex-shrink:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .prob-track { flex:1; height:6px; background:var(--c-border); border-radius:3px; overflow:hidden; }
+    .prob-fill { height:100%; border-radius:3px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+    .prob-pct { font-size:.72rem; font-weight:700; width:40px; text-align:right; color:var(--c-text); }
+    .info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:1rem; }
+    .info-item { background:var(--c-cyan-50); border:1px solid var(--c-cyan-100); border-radius:6px; padding:10px 12px; }
+    .info-key { font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--c-subtle); }
+    .info-val { font-size:.85rem; font-weight:600; color:var(--c-text); margin-top:2px; }
+    .risk-0 { background:#d1fae5!important; color:#065f46!important; border-color:#a7f3d0!important; }
+    .risk-1 { background:#dbeafe!important; color:#1e40af!important; border-color:#93c5fd!important; }
+    .risk-2 { background:#fef3c7!important; color:#92400e!important; border-color:#fcd34d!important; }
+    .risk-3 { background:#fee2e2!important; color:#991b1b!important; border-color:#fca5a5!important; }
+    .risk-4 { background:#ede9fe!important; color:#4c1d95!important; border-color:#c4b5fd!important; }
+    .table-wrap { overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; font-size:.83rem; }
+    thead tr { background:var(--c-cyan-700); color:#fff; }
+    thead th { padding:10px 14px; text-align:left; font-weight:600; font-size:.75rem; text-transform:uppercase; letter-spacing:.05em; }
+    tbody tr { border-bottom:1px solid var(--c-border); transition:var(--tr); }
+    tbody tr:hover { background:var(--c-cyan-50); }
+    tbody td { padding:10px 14px; color:var(--c-text); }
+    .badge { display:inline-block; padding:2px 10px; border-radius:99px; font-size:.7rem; font-weight:700; }
+    .chart-container { position:relative; height:260px; }
+    .modal-overlay { position:fixed; inset:0; z-index:200; background:rgba(15,23,42,.55); backdrop-filter:blur(4px); display:none; align-items:center; justify-content:center; }
+    .modal-overlay.open { display:flex; }
+    .modal { background:var(--c-surface); border-radius:20px; box-shadow:var(--shadow-lg); padding:2rem; max-width:520px; width:95%; animation:fadeIn .25s ease; }
+    .modal-title { font-size:1.1rem; font-weight:700; margin-bottom:1rem; color:var(--c-text); }
+    .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:1.5rem; }
+    .loader { display:none; text-align:center; padding:3rem 0; }
+    .loader.visible { display:block; }
+    .spinner { width:48px; height:48px; margin:0 auto 1rem; border:4px solid var(--c-border); border-top-color:var(--c-cyan-500); border-radius:50%; animation:spin .9s linear infinite; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+    .about-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; }
+    .about-card { background:var(--c-surface); border:1px solid var(--c-border); border-radius:12px; padding:1.5rem; box-shadow:var(--shadow-sm); }
+    .about-card h3 { font-size:.95rem; font-weight:700; color:var(--c-cyan-700); margin-bottom:.75rem; }
+    .about-card p { font-size:.875rem; color:var(--c-muted); line-height:1.7; }
+    .team-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:1.5rem; }
+    .team-card { background:var(--c-surface); border:1px solid var(--c-border); border-radius:12px; padding:1.5rem 1.25rem; text-align:center; box-shadow:var(--shadow-sm); transition:var(--tr); }
+    .team-card:hover { box-shadow:var(--shadow-md); transform:translateY(-3px); }
+    .team-avatar { width:64px; height:64px; border-radius:50%; background:linear-gradient(135deg,var(--c-cyan-500),var(--c-cyan-700)); display:flex; align-items:center; justify-content:center; margin:0 auto .75rem; font-size:1.4rem; font-weight:800; color:#fff; }
+    .team-name { font-size:.95rem; font-weight:700; color:var(--c-text); }
+    .team-role { font-size:.78rem; color:var(--c-muted); margin-top:3px; }
+    .team-tag { display:inline-block; margin-top:8px; padding:2px 10px; border-radius:99px; font-size:.7rem; font-weight:600; background:var(--c-cyan-50); color:var(--c-cyan-700); border:1px solid var(--c-cyan-100); }
+    .tech-pills { display:flex; flex-wrap:wrap; gap:6px; margin-top:.75rem; }
+    .tech-pill { padding:4px 12px; border-radius:99px; font-size:.75rem; font-weight:600; background:var(--c-cyan-50); color:var(--c-cyan-700); border:1px solid var(--c-cyan-100); font-family:'JetBrains Mono',monospace; }
+    .section-divider { height:1px; background:var(--c-border); margin:1rem 0; }
+    .app-footer { text-align:center; padding:1.5rem; border-top:1px solid var(--c-border); font-size:.78rem; color:var(--c-subtle); background:var(--c-surface); }
+    .app-footer strong { color:var(--c-cyan-600); }
+    @media (max-width:1100px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:900px) { .diag-grid { grid-template-columns:1fr; } .about-grid { grid-template-columns:1fr; } .team-grid { grid-template-columns:1fr 1fr; } }
+    @media (max-width:700px) { .sidebar { display:none; } .stats-grid { grid-template-columns:1fr 1fr; } }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <a class="nav-brand" href="#">
+    <div class="nav-logo">
+      <svg viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5C21.27 7.61 17 4.5 12 4.5zm0 12.5c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+    </div>
+    <span class="nav-brand-text">NETRA<span>DEEP</span></span>
+  </a>
+  <div class="nav-tabs">
+    <button class="nav-tab active" id="tab-dashboard" onclick="showView('dashboard')">Dashboard</button>
+    <button class="nav-tab" id="tab-diagnose" onclick="showView('diagnose')">Diagnose</button>
+    <button class="nav-tab" id="tab-records" onclick="showView('records')">Patient Records</button>
+    <button class="nav-tab" id="tab-about" onclick="showView('about')">About</button>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    AI Engine Online
+  </div>
+</nav>
+
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-label">Navigation</div>
+    <button class="sidebar-item active" id="side-dashboard" onclick="showView('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard
+    </button>
+    <button class="sidebar-item" id="side-diagnose" onclick="showView('diagnose')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>Run Diagnosis
+    </button>
+    <button class="sidebar-item" id="side-records" onclick="showView('records')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>Patient Records
+    </button>
+    <button class="sidebar-item" id="side-about" onclick="showView('about')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>About Platform
+    </button>
+    <div class="sidebar-label" style="margin-top:1rem;">Quick Actions</div>
+    <button class="sidebar-item" onclick="showView('diagnose')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Load Demo Cases
+    </button>
+    <button class="sidebar-item" onclick="showView('records');setTimeout(loadCases,200)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Refresh Records
+    </button>
+    <div class="sidebar-footer">
+      <div class="team-pill">
+        <strong>NETRADEEP Platform</strong>
+        AI diabetic retinopathy detection system
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-header">
+        <h1 class="page-title">Clinical Overview</h1>
+        <p class="page-subtitle">Real-time diagnostic analytics &mdash; Diabetic Retinopathy Screening Program</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Total Screenings</div><div class="stat-value" id="stat-total">&mdash;</div><div class="stat-sub">All-time patient records</div></div>
+        <div class="stat-card"><div class="stat-label">Critical Referrals</div><div class="stat-value" id="stat-critical" style="color:var(--r3)">&mdash;</div><div class="stat-sub">Stage 3&ndash;4 detections</div></div>
+        <div class="stat-card"><div class="stat-label">Normal Results</div><div class="stat-value" id="stat-normal" style="color:var(--r0)">&mdash;</div><div class="stat-sub">No apparent DR</div></div>
+        <div class="stat-card"><div class="stat-label">Avg. Confidence</div><div class="stat-value" id="stat-conf">&mdash;</div><div class="stat-sub">Model certainty score</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Stage Distribution</span></div>
+          <div class="card-body"><div class="chart-container"><canvas id="chart-dist"></canvas></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">DR Severity Scale</span></div>
+          <div class="card-body">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div class="info-item risk-0"><b>Stage 0 &mdash; No Apparent DR</b><br><span style="font-size:.8rem;font-weight:400;">Normal retinal vasculature. Annual screening recommended.</span></div>
+              <div class="info-item risk-1"><b>Stage 1 &mdash; Mild Non-Proliferative DR</b><br><span style="font-size:.8rem;font-weight:400;">Microaneurysms present. Follow-up in 6&ndash;9 months.</span></div>
+              <div class="info-item risk-2"><b>Stage 2 &mdash; Moderate NPDR</b><br><span style="font-size:.8rem;font-weight:400;">Vascular changes visible. OCT evaluation advised.</span></div>
+              <div class="info-item risk-3"><b>Stage 3 &mdash; Severe NPDR</b><br><span style="font-size:.8rem;font-weight:400;">Significant ischemia. Urgent specialist referral.</span></div>
+              <div class="info-item risk-4"><b>Stage 4 &mdash; Proliferative DR (PDR)</b><br><span style="font-size:.8rem;font-weight:400;">Neovascularization. Immediate vitreo-retinal intervention.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DIAGNOSE -->
+    <section class="view" id="view-diagnose">
+      <div class="page-header">
+        <h1 class="page-title">AI Diagnostic Engine</h1>
+        <p class="page-subtitle">Upload a fundus photograph for automated DR grading with Grad-CAM explainability</p>
+      </div>
+      <div class="diag-grid">
+        <div>
+          <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header"><span class="card-title">Fundus Image Input</span></div>
+            <div class="card-body">
+              <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondragover="handleDragOver(event)" ondrop="handleDrop(event)">
+                <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <div class="upload-title">Drop fundus image or click to browse</div>
+                <div class="upload-sub">Supports JPEG, PNG &mdash; Color fundus photography</div>
+              </div>
+              <input type="file" id="file-input" accept="image/*" onchange="handleFileSelect(event)" />
+              <img id="preview" class="preview-img" alt="Fundus preview" style="margin-top:1rem;" />
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:1.5rem;">
+            <div class="card-header"><span class="card-title">Patient Information</span></div>
+            <div class="card-body">
+              <div class="form-grid">
+                <div class="form-field"><label class="form-label" for="inp-pid">Patient ID</label><input class="form-input" id="inp-pid" type="text" placeholder="e.g. PT-20240001" /></div>
+                <div class="form-field"><label class="form-label" for="inp-name">Full Name</label><input class="form-input" id="inp-name" type="text" placeholder="Patient name" /></div>
+                <div class="form-field"><label class="form-label" for="inp-age">Age</label><input class="form-input" id="inp-age" type="number" placeholder="Years" min="1" max="120" /></div>
+                <div class="form-field"><label class="form-label" for="inp-gender">Gender</label><select class="form-select" id="inp-gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+                <div class="form-field"><label class="form-label" for="inp-eye">Eye Examined</label><select class="form-select" id="inp-eye"><option>OD (Right Eye)</option><option>OS (Left Eye)</option><option>Both Eyes</option></select></div>
+                <div class="form-field"><label class="form-label" for="inp-hba1c">HbA1c (%)</label><input class="form-input" id="inp-hba1c" type="number" placeholder="e.g. 7.2" step="0.1" min="4" max="15" /></div>
+                <div class="form-field full"><label class="form-label" for="inp-notes">Clinical Notes</label><input class="form-input" id="inp-notes" type="text" placeholder="Additional observations..." /></div>
+              </div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header"><span class="card-title">Demo Cases &mdash; Load by DR Stage</span></div>
+            <div class="card-body">
+              <p style="font-size:.8rem;color:var(--c-muted);margin-bottom:.75rem;">Load a pre-staged fundus image to test each severity level.</p>
+              <div class="btn-row">
+                <button class="btn btn-outline" onclick="loadPreset(0)">Stage 0</button>
+                <button class="btn btn-outline" onclick="loadPreset(1)">Stage 1</button>
+                <button class="btn btn-outline" onclick="loadPreset(2)">Stage 2</button>
+                <button class="btn btn-outline" onclick="loadPreset(3)">Stage 3</button>
+                <button class="btn btn-outline" onclick="loadPreset(4)">Stage 4</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="min-height:500px;">
+            <div class="card-header">
+              <span class="card-title">Analysis Results</span>
+              <div id="save-btn-wrap" style="display:none;">
+                <button class="btn btn-primary" onclick="openSaveModal()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>Save to EHR
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="run-btn-wrap" style="text-align:center;padding:3rem 0;">
+                <p style="color:var(--c-muted);font-size:.875rem;margin-bottom:1.5rem;">Upload a fundus image and click Analyze to begin.</p>
+                <button class="btn btn-primary" style="font-size:1rem;padding:14px 32px;" onclick="runAnalysis()" id="analyze-btn" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;"><polygon points="5 3 19 12 5 21 5 3"/></svg>Run AI Analysis
+                </button>
+              </div>
+              <div class="loader" id="loader">
+                <div class="spinner"></div>
+                <p style="color:var(--c-muted);font-size:.875rem;">Processing fundus image &mdash; Grad-CAM analysis in progress...</p>
+              </div>
+              <div class="result-section" id="results">
+                <div class="img-trio">
+                  <figure><img id="r-original" alt="Original" /><figcaption>Original</figcaption></figure>
+                  <figure><img id="r-enhanced" alt="CLAHE Enhanced" /><figcaption>CLAHE Enhanced</figcaption></figure>
+                  <figure><img id="r-cam" alt="Grad-CAM" /><figcaption>Grad-CAM Heatmap</figcaption></figure>
+                </div>
+                <div id="dx-badge" class="dx-badge"></div>
+                <div class="conf-bar-wrap">
+                  <div class="conf-bar-label"><span>Model Confidence</span><span id="conf-pct"></span></div>
+                  <div class="conf-bar-track"><div class="conf-bar-fill" id="conf-fill" style="width:0%"></div></div>
+                </div>
+                <div class="info-grid" id="info-grid"></div>
+                <div style="margin-bottom:.5rem;font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--c-subtle);">Class Probabilities</div>
+                <div class="prob-bars" id="prob-bars"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECORDS -->
+    <section class="view" id="view-records">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;">
+        <div><h1 class="page-title">Electronic Health Records</h1><p class="page-subtitle">Complete audit trail of all screened patients</p></div>
+        <button class="btn btn-outline" onclick="loadCases()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-body" style="padding:0;">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Patient ID</th><th>Name</th><th>Age</th><th>Eye</th><th>Stage</th><th>Confidence</th><th>Risk Level</th><th>Date</th></tr></thead>
+              <tbody id="records-body"><tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--c-muted);">Loading records...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="view" id="view-about">
+      <div class="page-header">
+        <h1 class="page-title">About NETRADEEP</h1>
+        <p class="page-subtitle">AI-powered clinical diagnostic platform for diabetic retinopathy detection</p>
+      </div>
+      <div class="about-grid" style="margin-bottom:1.5rem;">
+        <div class="about-card">
+          <h3>Platform Overview</h3>
+          <p>NETRADEEP is an end-to-end clinical AI platform designed to assist ophthalmologists in the automated grading of diabetic retinopathy from fundus photographs. The platform employs a fine-tuned MobileNetV2 deep learning model trained on the EyePACS/APTOS dataset and provides explainable AI outputs via Gradient-weighted Class Activation Mapping (Grad-CAM).</p>
+          <div class="section-divider"></div>
+          <p>The system produces multi-class severity grading across 5 clinically recognized stages (0&ndash;4) following the International Diabetic Retinopathy Severity Scale. All predictions include per-class confidence scores and heatmap overlays.</p>
+        </div>
+        <div class="about-card">
+          <h3>Technical Architecture</h3>
+          <p>The diagnostic pipeline consists of a Python/Flask REST API backend, a single-page web application frontend, and an SQLite-based Electronic Health Record module. Preprocessing uses CLAHE on the green channel of the fundus image to improve microaneurysm visibility.</p>
+          <div class="section-divider"></div>
+          <p>Explainability is provided through Grad-CAM heatmaps generated against the final convolutional layer of MobileNetV2, visualizing the discriminative regions used by the model during classification.</p>
+          <div class="tech-pills">
+            <span class="tech-pill">TensorFlow 2.x</span><span class="tech-pill">MobileNetV2</span><span class="tech-pill">Flask</span><span class="tech-pill">OpenCV</span><span class="tech-pill">NumPy</span><span class="tech-pill">SQLite</span><span class="tech-pill">Grad-CAM</span><span class="tech-pill">CLAHE</span>
+          </div>
+        </div>
+      </div>
+      <div class="about-card" style="margin-bottom:1.5rem;border-left:4px solid #ef4444;">
+        <h3 style="color:#b91c1c;">Clinical Disclaimer</h3>
+        <p style="color:#7f1d1d;">NETRADEEP is intended as a clinical decision support tool only. All AI-generated results must be reviewed and validated by a qualified ophthalmologist or medical professional before any clinical action is taken. This system does not constitute a substitute for professional medical examination, diagnosis, or treatment.</p>
+      </div>
+      <h2 style="font-size:1.2rem;font-weight:800;color:var(--c-text);margin-bottom:1rem;letter-spacing:-.02em;">Development Team</h2>
+      <div class="team-grid">
+        <div class="team-card">
+          <div class="team-avatar">VB</div>
+          <div class="team-name">Vedant Bagthariya</div>
+          <div class="team-role">Team Lead &mdash; AI/ML Architecture</div>
+          <span class="team-tag">Project Lead</span>
+          <p style="font-size:.78rem;color:var(--c-muted);margin-top:.75rem;line-height:1.6;">Overall system design, deep learning model fine-tuning, Grad-CAM pipeline, and project coordination.</p>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">RP</div>
+          <div class="team-name">Rajdeepsinh Parmar</div>
+          <div class="team-role">Backend Engineer</div>
+          <span class="team-tag">Backend</span>
+          <p style="font-size:.78rem;color:var(--c-muted);margin-top:.75rem;line-height:1.6;">Flask REST API, database integration, patient record management, and server-side inference pipeline.</p>
+        </div>
+        <div class="team-card">
+          <div class="team-avatar">AS</div>
+          <div class="team-name">Avanish Shiyal</div>
+          <div class="team-role">Frontend Engineer</div>
+          <span class="team-tag">Frontend</span>
+          <p style="font-size:.78rem;color:var(--c-muted);margin-top:.75rem;line-height:1.6;">Clinical web interface design, data visualization components, and responsive UI/UX system.</p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <strong>NETRADEEP</strong> &mdash; AI Diabetic Retinopathy Diagnostic Platform &nbsp;|&nbsp; MobileNetV2 + Grad-CAM + CLAHE &nbsp;|&nbsp; Made by Vedant Bagthariya, Rajdeepsinh Parmar &amp; Avanish Shiyal
+    </footer>
+  </main>
+</div>
+
+<!-- SAVE MODAL -->
+<div class="modal-overlay" id="save-modal">
+  <div class="modal">
+    <div class="modal-title">Save Patient Record to EHR</div>
+    <div class="form-grid">
+      <div class="form-field"><label class="form-label">Patient ID</label><input class="form-input" id="m-pid" type="text" /></div>
+      <div class="form-field"><label class="form-label">Full Name</label><input class="form-input" id="m-name" type="text" /></div>
+      <div class="form-field"><label class="form-label">Age</label><input class="form-input" id="m-age" type="number" /></div>
+      <div class="form-field"><label class="form-label">Gender</label><select class="form-select" id="m-gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+      <div class="form-field"><label class="form-label">Eye Examined</label><select class="form-select" id="m-eye"><option>OD (Right Eye)</option><option>OS (Left Eye)</option><option>Both Eyes</option></select></div>
+      <div class="form-field"><label class="form-label">HbA1c (%)</label><input class="form-input" id="m-hba1c" type="number" step="0.1" /></div>
+      <div class="form-field full"><label class="form-label">Clinical Notes</label><input class="form-input" id="m-notes" type="text" placeholder="Physician observations..." /></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSaveModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRecord()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/></svg>Confirm Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentImageB64 = null, lastResult = null, distChart = null;
+  const RC = ['#10b981','#3b82f6','#f59e0b','#ef4444','#7c3aed'];
+  const RL = ['No Risk','Moderate','High','Very High','Critical'];
+  const RCL = ['risk-0','risk-1','risk-2','risk-3','risk-4'];
+
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+    document.getElementById('view-' + name).classList.add('active');
+    const tab = document.getElementById('tab-' + name);
+    const side = document.getElementById('side-' + name);
+    if (tab) tab.classList.add('active');
+    if (side) side.classList.add('active');
+    if (name === 'dashboard') loadAnalytics();
+    if (name === 'records') loadCases();
+  }
+
+  async function loadAnalytics() {
+    try {
+      const d = await (await fetch('/api/analytics')).json();
+      if (!d.success) return;
+      animateNum('stat-total', d.total_screenings);
+      animateNum('stat-critical', d.critical_referrals);
+      animateNum('stat-normal', d.normal_count);
+      document.getElementById('stat-conf').textContent = d.avg_confidence + '%';
+      renderDistChart(d.stage_distribution);
+    } catch(e) { console.error(e); }
+  }
+
+  function animateNum(id, target) {
+    const el = document.getElementById(id); let val = 0;
+    const step = Math.max(1, Math.floor(target / 30));
+    const t = setInterval(() => { val = Math.min(val + step, target); el.textContent = val; if (val >= target) clearInterval(t); }, 40);
+  }
+
+  function renderDistChart(dist) {
+    const ctx = document.getElementById('chart-dist').getContext('2d');
+    if (distChart) distChart.destroy();
+    distChart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: Object.keys(dist).map(k => k.split(':')[0]), datasets: [{ label: 'Patients', data: Object.values(dist), backgroundColor: RC, borderRadius: 6, borderSkipped: false }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { family: 'Inter', size: 11 } } }, y: { beginAtZero: true, grid: { color: '#e2e8f0' }, ticks: { font: { family: 'Inter', size: 11 }, stepSize: 1 } } } }
+    });
+  }
+
+  function handleFileSelect(e) { const f = e.target.files[0]; if (f) processFile(f); }
+  function handleDragOver(e) { e.preventDefault(); document.getElementById('upload-zone').classList.add('dragover'); }
+  function handleDrop(e) { e.preventDefault(); document.getElementById('upload-zone').classList.remove('dragover'); const f = e.dataTransfer.files[0]; if (f && f.type.startsWith('image/')) processFile(f); }
+  function processFile(file) {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      currentImageB64 = ev.target.result;
+      const p = document.getElementById('preview');
+      p.src = currentImageB64; p.style.display = 'block';
+      document.getElementById('upload-zone').style.display = 'none';
+      document.getElementById('analyze-btn').disabled = false;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function loadPreset(idx) {
+    try {
+      const d = await (await fetch('/api/preset/' + idx)).json();
+      if (!d.success) { alert('Demo image for Stage ' + idx + ' not found.'); return; }
+      currentImageB64 = 'data:image/jpeg;base64,' + d.image_b64;
+      const p = document.getElementById('preview');
+      p.src = currentImageB64; p.style.display = 'block';
+      document.getElementById('upload-zone').style.display = 'none';
+      document.getElementById('analyze-btn').disabled = false;
+      document.getElementById('inp-notes').value = 'Loaded: Stage ' + idx + ' demo case';
+    } catch(e) { alert('Failed to load preset.'); }
+  }
+
+  async function runAnalysis() {
+    if (!currentImageB64) return;
+    document.getElementById('run-btn-wrap').style.display = 'none';
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('loader').classList.add('visible');
+    document.getElementById('save-btn-wrap').style.display = 'none';
+    const fd = new FormData(); fd.append('image_b64', currentImageB64);
+    try {
+      const d = await (await fetch('/api/predict', { method: 'POST', body: fd })).json();
+      if (!d.success) throw new Error(d.error || 'Unknown error');
+      lastResult = d; renderResults(d);
+    } catch(e) {
+      document.getElementById('loader').classList.remove('visible');
+      document.getElementById('run-btn-wrap').style.display = 'block';
+      alert('Analysis failed: ' + e.message);
+    }
+  }
+
+  function renderResults(d) {
+    document.getElementById('loader').classList.remove('visible');
+    document.getElementById('results').classList.add('visible');
+    document.getElementById('save-btn-wrap').style.display = 'block';
+    document.getElementById('r-original').src = 'data:image/jpeg;base64,' + d.original_b64;
+    document.getElementById('r-enhanced').src = 'data:image/jpeg;base64,' + d.enhanced_b64;
+    document.getElementById('r-cam').src = 'data:image/jpeg;base64,' + d.cam_b64;
+    const color = RC[d.stage_idx];
+    const badge = document.getElementById('dx-badge');
+    badge.innerHTML = '<div class="dot" style="background:' + color + '"></div> ' + d.stage_name;
+    badge.style.cssText = 'background:' + color + '22;color:' + color + ';border:1.5px solid ' + color + '55;';
+    const conf = d.confidence;
+    document.getElementById('conf-pct').textContent = conf.toFixed(1) + '%';
+    setTimeout(() => document.getElementById('conf-fill').style.width = conf + '%', 80);
+    document.getElementById('info-grid').innerHTML =
+      '<div class="info-item"><div class="info-key">Risk Category</div><div class="info-val">' + d.risk_category + '</div></div>' +
+      '<div class="info-item"><div class="info-key">Follow-up Action</div><div class="info-val">' + d.urgency + '</div></div>' +
+      '<div class="info-item" style="grid-column:1/-1"><div class="info-key">Treatment Protocol</div><div class="info-val">' + d.treatment + '</div></div>';
+    const pc = document.getElementById('prob-bars'); pc.innerHTML = '';
+    d.classes.forEach((cls, i) => {
+      const pct = d.probabilities[i].toFixed(1);
+      pc.innerHTML += '<div class="prob-row"><div class="prob-label" title="' + cls + '">' + cls.split(':')[0].trim() + '</div><div class="prob-track"><div class="prob-fill" style="width:0%;background:' + RC[i] + '" data-w="' + pct + '"></div></div><div class="prob-pct">' + pct + '%</div></div>';
+    });
+    setTimeout(() => document.querySelectorAll('.prob-fill[data-w]').forEach(el => el.style.width = el.dataset.w + '%'), 100);
+  }
+
+  function openSaveModal() {
+    ['pid','name','age','notes','hba1c'].forEach(k => {
+      const m = document.getElementById('m-' + k), i = document.getElementById('inp-' + k);
+      if (m && i) m.value = i.value;
+    });
+    document.getElementById('save-modal').classList.add('open');
+  }
+  function closeSaveModal() { document.getElementById('save-modal').classList.remove('open'); }
+
+  async function saveRecord() {
+    if (!lastResult) return;
+    const payload = {
+      patient_id: document.getElementById('m-pid').value || 'PT-AUTO',
+      patient_name: document.getElementById('m-name').value || 'Anonymous',
+      age: parseInt(document.getElementById('m-age').value) || 50,
+      gender: document.getElementById('m-gender').value,
+      eye_examined: document.getElementById('m-eye').value,
+      hba1c: parseFloat(document.getElementById('m-hba1c').value) || 0,
+      stage_idx: lastResult.stage_idx, stage_name: lastResult.stage_name,
+      confidence: lastResult.confidence, urgency_level: lastResult.urgency,
+      doctor_notes: document.getElementById('m-notes').value || 'Automated diagnostic record.'
+    };
+    try {
+      const d = await (await fetch('/api/cases', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })).json();
+      if (d.success) { closeSaveModal(); alert('Record saved — Case ID: ' + d.case_id); }
+    } catch(e) { alert('Failed to save: ' + e.message); }
+  }
+
+  async function loadCases() {
+    try {
+      const d = await (await fetch('/api/cases')).json();
+      const tbody = document.getElementById('records-body');
+      if (!d.cases || d.cases.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:2rem;color:var(--c-muted);">No records found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.cases.map(c =>
+        '<tr><td><code style="font-family:monospace;font-size:.8rem;">' + c.patient_id + '</code></td>' +
+        '<td>' + c.name + '</td><td>' + c.age + '</td><td>' + c.eye + '</td>' +
+        '<td>' + c.stage_name.split(':')[0] + '</td><td>' + c.confidence.toFixed(1) + '%</td>' +
+        '<td><span class="badge ' + (RCL[c.stage_idx] || '') + '">' + RL[c.stage_idx] + '</span></td>' +
+        '<td style="font-size:.78rem;color:var(--c-muted);">' + new Date(c.timestamp).toLocaleDateString() + '</td></tr>'
+      ).join('');
+    } catch(e) { console.error(e); }
+  }
+
+  loadAnalytics();
+</script>
+</body>
+</html>
